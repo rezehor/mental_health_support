@@ -1,6 +1,6 @@
 import os
 import sys
-
+from typing import Annotated
 from openai import OpenAI
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,7 +32,7 @@ client = OpenAI(
 )
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., max_length=1000)
+    message: Annotated[str, Field(max_length=1000)]
 
 @app.post("/chat")
 async def chat(request: ChatRequest) -> dict:
@@ -40,10 +40,11 @@ async def chat(request: ChatRequest) -> dict:
         system_message = {
             "role": "system",
             "content": (
-                "Ти — добрий і підтримуючий психологічний помічник. "
-                "Ти слухаєш уважно, відповідаєш емпатично, ввічливо і з розумінням. "
-                "Твої відповіді завжди підтримують, допомагають справитися з тривогою, стресом і труднощами. "
-                "Говори українською."
+                "Ти — емпатичний і підтримуючий психологічний помічник. "
+                "Ти слухаєш уважно, відповідаєш, м'яко і з розумінням, дуже обережно щоб не дратувати "
+                "Слідкуй за емоційним станом юзера, щоб не дратувати, "
+                "Ти не даєш лікарських рекомендацій, а тільки підтримуєш розмову, "
+                "Відповідай на тій мові на якій до тебе звертаються"
             )
         }
         completion = client.chat.completions.create(
