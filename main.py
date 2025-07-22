@@ -1,17 +1,16 @@
 import os
 import sys
-from typing import Annotated
+from enum import Enum
+from typing import Annotated, List
 from openai import OpenAI
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 app = FastAPI()
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,28 +30,27 @@ client = OpenAI(
     api_key=OPENROUTER_API_KEY,
 )
 
+
+class RoleEnum(str, Enum):
+    user = "user"
+    system = "system"
+    assistant = "assistant"
+
+
+class ChatMessage(BaseModel):
+    role: RoleEnum
+    content: str
+
+
 class ChatRequest(BaseModel):
-    message: Annotated[str, Field(max_length=1000)]
+    messages: Annotated[List[ChatMessage], Field(min_items=1)]
 
 @app.post("/chat")
 async def chat(request: ChatRequest) -> dict:
     try:
-        system_message = {
-            "role": "system",
-            "content": (
-                "Ти — емпатичний і підтримуючий психологічний помічник. "
-                "Твоє завдання — слухати уважно, відповідати м’яко, з розумінням і делікатністю. "
-                "Будь обережним, щоб не зачіпати або не дратувати співрозмовника. "
-                "Не давай жодних медичних, лише підтримку та теплу бесіду. "
-                "Аналізуй мову запиту користувача і відповідай тією ж мовою — українською, російською, англійською тощо."
-            )
-        }
         completion = client.chat.completions.create(
             model="deepseek/deepseek-chat-v3-0324:free",
-            messages=[
-                system_message,
-                {"role": "user", "content": request.message}
-            ],
+            messages=request.messages,
             temperature=0.6,
             max_tokens=512,
             extra_headers={
