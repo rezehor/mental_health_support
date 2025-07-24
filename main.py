@@ -12,11 +12,13 @@ load_dotenv()
 
 app = FastAPI()
 
+
 MODEL_NAME = "deepseek/deepseek-chat-v3-0324:free"
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("ALLOWED_ORIGINS"),
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
