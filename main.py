@@ -12,9 +12,11 @@ load_dotenv()
 
 app = FastAPI()
 
+MODEL_NAME = "deepseek/deepseek-chat-v3-0324:free"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS"),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,12 +47,18 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: Annotated[List[ChatMessage], Field(min_items=1)]
 
-@app.post("/chat")
-async def chat(request: ChatRequest) -> dict:
+
+class ChatResponse(BaseModel):
+    response: str
+
+
+@app.post("/chat", response_model=ChatResponse)
+
+async def chat(request: ChatRequest) -> ChatResponse:
     try:
         completion = client.chat.completions.create(
-            model="deepseek/deepseek-chat-v3-0324:free",
-            messages=request.messages,
+            model=MODEL_NAME,
+            messages=[message.model_dump() for message in request.messages],
             temperature=0.6,
             max_tokens=512,
             extra_headers={
@@ -58,7 +66,8 @@ async def chat(request: ChatRequest) -> dict:
                 "X-Title": "local-dev",
             }
         )
-        return {"response": completion.choices[0].message.content}
+        content = completion.choices[0].message.content
+        return ChatResponse(response=content)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
